@@ -33,8 +33,6 @@ module.exports = {
                     password: promptResult.password,
                 };
 
-                console.log(auth);
-
                 resolve(auth);
             });
         });
