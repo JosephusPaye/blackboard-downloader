@@ -17,7 +17,7 @@ async function downloadFile(auth, url, dest, filename) {
 
     return download(url, dir, { auth, filename })
         .on('response', response => {
-            bar.total = response.headers['content-length'];
+            bar.total = response.headers['content-length'] || 1;
             response.on('data', data => bar.tick(data.length));
         })
         .catch(err => {
