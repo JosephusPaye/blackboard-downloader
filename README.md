@@ -18,8 +18,7 @@ Since Blackboard doesn't have a (sane) API, we do some manual scraping. For that
 - Go to the **Course Materials** page for the course to download
 - Open the DevTools - <kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> - and go to the **Network** tab
 - Refresh the page
-- In the **Network** tab, find the request for the **Course Materials** page, right-click and select **Copy** > **Copy as cURL (bash)**
-    - See this [screenshot](screenshot.jpg?raw=true) for reference
+- In the **Network** tab, find the request for the **Course Materials** page, right-click and select **Copy** > **Copy as cURL (bash)**. See this [screenshot](screenshot.jpg?raw=true) for reference.
 - Create a file in the repo folder called `yum.txt` and paste in the copied content
 
 ## Run the ish
