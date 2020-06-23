@@ -1,45 +1,21 @@
 const cheerio = require('cheerio');
-const curlconverter = require('curlconverter');
 const filenamify = require('filenamify');
 const fs = require('fs');
 const path = require('path');
 const request = require('request-promise');
 
 const log = require('./log');
-
-async function getRequestOptions() {
-    try {
-        const curl = fs
-            .readFileSync(path.join(__dirname, 'yum.txt'), 'utf8')
-            .trim();
-        const { raw_url: url, cookies, headers } = JSON.parse(
-            curlconverter.toJsonString(curl)
-        );
-
-        delete headers['Accept-Encoding'];
-
-        return {
-            url,
-            headers: {
-                ...headers,
-                Cookie: Object.keys(cookies)
-                    .map(key => {
-                        return `${key}=${cookies[key]}`;
-                    })
-                    .join('; '),
-            },
-        };
-    } catch (err) {
-        log(err);
-        return undefined;
-    }
-}
+const { getRequestOptions } = require('./auth');
 
 async function getHtml(requestOptions) {
     return request.get(requestOptions);
 }
 
 function toAbsolute(relativeUrl) {
+    if (relativeUrl && relativeUrl.trim().match(/^https?:\/\//i)) {
+        return relativeUrl;
+    }
+
     return relativeUrl
         ? 'https://uonline.newcastle.edu.au' + relativeUrl
         : undefined;
@@ -189,10 +165,10 @@ async function getDownloadableCoursePages(requestOptions) {
             .trim();
 
         if (
-            ['Course Outline', 'Course Materials', 'Assessment'].includes(title)
+            ['Course Outline', 'Course Materials', 'Assessment', 'UONCapture'].includes(title)
         ) {
             const url = toAbsolute($(el).attr('href'));
-            pages.push({ title, url });
+            pages.push({ title, url, isUonCapture: title === UONCapture });
         }
     }
 

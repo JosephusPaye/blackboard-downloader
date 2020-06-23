@@ -4,9 +4,9 @@ const download = require('download');
 const ProgressBar = require('progress');
 
 const log = require('./log');
-const { getAuth } = require('./prompts');
+const { getRequestOptions  } = require('./auth');
 
-async function downloadFile(auth, url, dest, filename) {
+async function downloadFile(headers, url, dest, filename) {
     const dir = path.join(__dirname, 'downloads', dest);
     const bar = new ProgressBar('[:bar] :percent :etas', {
         complete: '=',
@@ -15,7 +15,7 @@ async function downloadFile(auth, url, dest, filename) {
         total: 0,
     });
 
-    return download(url, dir, { auth, filename })
+    return download(url, dir, { headers, filename })
         .on('response', response => {
             bar.total = response.headers['content-length'] || 1;
             response.on('data', data => bar.tick(data.length));
@@ -35,8 +35,7 @@ async function downloadFile(auth, url, dest, filename) {
 async function main() {
     const data = require('./downloads/data.json');
 
-    const { username, password } = await getAuth();
-    const auth = `${username}:${password}`;
+    const { headers } = await getRequestOptions();
 
     for (let i = 0; i < data.length; i++) {
         const resource = data[i];
@@ -67,7 +66,7 @@ async function main() {
                 );
 
                 await downloadFile(
-                    auth,
+                    headers,
                     attachment.url,
                     attachment.path,
                     attachment.filename
