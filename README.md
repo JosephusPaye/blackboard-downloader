@@ -1,6 +1,6 @@
 # Blackboard Course Downloader
 
-This tool downloads files and attachments from the **Course Outline**, **Course Materials** and **Assessment** pages in a Blackboard course, neatly organized into folders like they are on Blackboard.
+This tool downloads files and attachments from the **Course Outline**, **Course Materials** and **Assessment** pages in a Blackboard course, neatly organized into folders like they are on Blackboard. It will also download lecture videos from UONCapture (Ponopto).
 
 Because [ain't](https://media.giphy.com/media/10PcMWwtZSYk2k/giphy.gif) [nobody](https://media.giphy.com/media/rX9dPaJHRJt7i/giphy.gif) [got](https://media.giphy.com/media/xT4uQdmP1oK1847R3G/giphy.gif) [time](https://media.giphy.com/media/3ov9jPDMzHPjTklNKw/giphy.gif) [for](https://media.giphy.com/media/xUPGcvWUuhxaQQMme4/giphy.gif) [that](https://media.giphy.com/media/yhKH6Qx7a330c/giphy.gif) manual download.
 
@@ -25,5 +25,5 @@ Since Blackboard doesn't have a (sane) API, we do some manual scraping. For that
 ## Run the ish
 
 - In the repo directory, run `node archive.js` to create a list of content in the course
-- After the archive data is successfully created, run `node download.js` to download all content - you will be asked for your Blackboard username and password to continue.
+- After the archive data is successfully created, run `node download.js` to download all content. Files downloaded from a previous run will be skipped. Delete them to force a re-download.
 - Enjoy your [new-found efficiency](http://giphygifs.s3.amazonaws.com/media/DK3nPt4gDanRK/giphy.gif)!

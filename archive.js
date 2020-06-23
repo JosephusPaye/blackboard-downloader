@@ -3,12 +3,18 @@ const filenamify = require('filenamify');
 const fs = require('fs');
 const path = require('path');
 const request = require('request-promise');
+const { URL } = require('url');
 
 const log = require('./log');
 const { getRequestOptions } = require('./auth');
 
-async function getHtml(requestOptions) {
-    return request.get(requestOptions);
+async function getUrlContent(requestOptions) {
+    try {
+        return request.get(requestOptions);
+    } catch (err) {
+        log('failed to fetch url', err);
+        return null;
+    }
 }
 
 function toAbsolute(relativeUrl) {
@@ -31,33 +37,98 @@ function getType(iconSrc) {
         : 'unknown';
 }
 
-function getPageTitle($, parentPath) {
+function getPagePath($, parentPath) {
     if (parentPath.length > 0) {
         return parentPath;
     }
 
-    const courseTitle = filenamify(($('.courseName').text() || '').trim());
-    const pageTitle = filenamify(($('#pageTitleText').text() || '').trim());
+    const courseTitle = $('.courseName').text() || '';
+    const pageTitle = $('#pageTitleText').text() || '';
 
-    return path.join(courseTitle, pageTitle);
+    const courseTitleSegment = filenamify(courseTitle, { replacement: '_' }).trim();
+    const pageTitleSegment = filenamify(pageTitle, { replacement: '_' }).trim();
+
+    return path.join(courseTitleSegment, pageTitleSegment);
+}
+
+async function getUonCaptureDetails(requestOptions, parentPath) {
+    let html = await getUrlContent(requestOptions);
+
+    if (!html) {
+        return null;
+    }
+
+    const $ = cheerio.load(html);
+    const uonCaptureUrl = new URL($('iframe[src^="https://uoncapture"]').attr('src'));
+    const courseId = uonCaptureUrl.searchParams.get('folderID');
+
+    return {
+        title: 'UONCapture',
+        path: getPagePath($, parentPath),
+        rssUrl: `http://uoncapture.ap.panopto.com/Panopto/Podcast/Podcast.ashx?courseid=${courseId}&type=mp4`,
+    };
+}
+
+async function getUonCapture(requestOptions, parentPath, resources) {
+    console.log('\nprocessing UONCapture:', requestOptions.url);
+
+    const details = await getUonCaptureDetails(requestOptions, parentPath);
+
+    if (!details) {
+        return;
+    }
+
+    const resource = {
+        type: 'folder',
+        title: details.title,
+        path: details.path,
+        attachments: [],
+        children: [],
+        downloadable: false,
+    };
+
+    let xml = await getUrlContent({ url: details.rssUrl });
+
+    if (!xml) {
+        return;
+    }
+
+    const $$ = cheerio.load(xml);
+    const items = $$('item');
+
+    for (let i = 0; i < items.length; i++) {
+        const el = items[i];
+
+        const title = $$(el).find('title').text().trim();
+        const url = $$(el).find('enclosure').attr('url');
+
+        resource.attachments.push({
+            title,
+            url,
+            path: resource.path,
+            filename: String(i).padStart(2, '0') + ' - ' + filenamify(title, { replacement: '_' }) + '.mp4',
+            downloadable: true,
+        });
+
+        console.log('processed:', title);
+    }
+
+    resources.push(resource);
 }
 
 async function getPageResources(requestOptions, parentPath, resources) {
     console.log('\nprocessing page:', requestOptions.url);
 
-    let html;
+    let html = await getUrlContent(requestOptions);
 
-    try {
-        html = await getHtml(requestOptions);
-    } catch (err) {
-        log('failed to fetch page', err);
-        return [];
+    if (!html) {
+        return;
     }
 
     const $ = cheerio.load(html);
     const items = $('ul.contentList > li');
 
-    parentPath = getPageTitle($, parentPath);
+    parentPath = getPagePath($, parentPath);
 
     for (let i = 0; i < items.length; i++) {
         const el = items[i];
@@ -65,14 +136,18 @@ async function getPageResources(requestOptions, parentPath, resources) {
         const iconSrc = $(el)
             .find('.item_icon')
             .attr('src');
+
         const type = getType(iconSrc);
+
         const title = $(el)
             .find('h3')
             .text()
             .trim();
+
         const url = $(el)
             .find('h3 a')
             .attr('href');
+
         const content =
             type === 'text'
                 ? $(el)
@@ -80,9 +155,10 @@ async function getPageResources(requestOptions, parentPath, resources) {
                       .text()
                       .trim()
                 : undefined;
+
         const currentPath = path.join(
             parentPath,
-            String(i).padStart(2, '0') + ' - ' + filenamify(title)
+            String(i).padStart(2, '0') + ' - ' + filenamify(title, { replacement: '_' })
         );
 
         const resource = {
@@ -107,7 +183,7 @@ async function getPageResources(requestOptions, parentPath, resources) {
                 title: resource.title,
                 url: resource.url,
                 path: resource.path,
-                filename: filenamify(resource.title),
+                filename: filenamify(resource.title, { replacement: '_' }),
                 downloadable: true,
             });
         }
@@ -124,7 +200,7 @@ async function getPageResources(requestOptions, parentPath, resources) {
                     url: toAbsolute($(el).attr('href')),
                     path: currentPath,
                     filename:
-                        String(i).padStart(2, '0') + ' - ' + filenamify(title),
+                        String(i).padStart(2, '0') + ' - ' + filenamify(title, { replacement: '_' }),
                 });
             });
         }
@@ -144,12 +220,9 @@ async function getPageResources(requestOptions, parentPath, resources) {
 }
 
 async function getDownloadableCoursePages(requestOptions) {
-    let html;
+    let html = await getUrlContent(requestOptions);
 
-    try {
-        html = await getHtml(requestOptions);
-    } catch (err) {
-        log('failed to fetch page', err);
+    if (!html) {
         return [];
     }
 
@@ -160,6 +233,7 @@ async function getDownloadableCoursePages(requestOptions) {
 
     for (let i = 0; i < items.length; i++) {
         const el = items[i];
+
         const title = $(el)
             .text()
             .trim();
@@ -168,7 +242,7 @@ async function getDownloadableCoursePages(requestOptions) {
             ['Course Outline', 'Course Materials', 'Assessment', 'UONCapture'].includes(title)
         ) {
             const url = toAbsolute($(el).attr('href'));
-            pages.push({ title, url, isUonCapture: title === UONCapture });
+            pages.push({ title, url });
         }
     }
 
@@ -197,11 +271,16 @@ async function main() {
 
     for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
-        await getPageResources(
-            { url: page.url, headers: requestOptions.headers },
-            '',
-            resources
-        );
+
+        if (page.title === 'UONCapture') {
+            await getUonCapture({ url: page.url, headers: requestOptions.headers }, '', resources);
+        } else {
+            await getPageResources(
+                { url: page.url, headers: requestOptions.headers },
+                '',
+                resources
+            );
+        }
     }
 
     const dir = path.join(__dirname, 'downloads');

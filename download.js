@@ -15,6 +15,13 @@ async function downloadFile(headers, url, dest, filename) {
         total: 0,
     });
 
+    const fullPath = path.join(dir, filename);
+
+    if (fs.existsSync(fullPath)) {
+        console.log('   skipping, already downloaded:', filename);
+        return false;
+    }
+
     return download(url, dir, { headers, filename })
         .on('response', response => {
             bar.total = response.headers['content-length'] || 1;
