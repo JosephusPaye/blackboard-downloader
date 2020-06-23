@@ -1,6 +1,6 @@
 # Blackboard Course Downloader
 
-This tool downloads files and attachments from the **Course Outline**, **Course Materials** and **Assessment** pages in a Blackboard course, neatly organized into folders like they are on Blackboard. It will also download lecture videos from UONCapture (Ponopto).
+This tool downloads files and attachments from the **Course Outline**, **Course Materials** and **Assessment** pages in a Blackboard course, neatly organized into folders like they are on Blackboard. It will also download lecture videos from UONCapture (Panopto).
 
 Because [ain't](https://media.giphy.com/media/10PcMWwtZSYk2k/giphy.gif) [nobody](https://media.giphy.com/media/rX9dPaJHRJt7i/giphy.gif) [got](https://media.giphy.com/media/xT4uQdmP1oK1847R3G/giphy.gif) [time](https://media.giphy.com/media/3ov9jPDMzHPjTklNKw/giphy.gif) [for](https://media.giphy.com/media/xUPGcvWUuhxaQQMme4/giphy.gif) [that](https://media.giphy.com/media/yhKH6Qx7a330c/giphy.gif) manual download.
 
